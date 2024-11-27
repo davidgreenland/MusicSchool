@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MusicSchool.Models;
+using MusicSchool.Requests.Instrument;
 using MusicSchool.Responses;
 
 namespace MusicSchool.Controllers;
@@ -42,5 +44,44 @@ public class InstrumentController : ControllerBase
         }
 
         return Ok(new InstrumentResponse(instrument.Id, instrument.Name, instrument.Category.CategoryName, instrument.Students));
+    }
+
+    // PUT: api/Instrument/1
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<Instrument>> UpdateInstrument(int id, [FromBody] UpdateInstrumentPut request)
+    {
+        if (!await CategoryExists(request.NewCategoryId)) // foreign key
+        {
+            return NotFound($"Category: {request.NewCategoryId} does not exist");
+        }
+
+        if (await InstrumentExists(request.NewInstrumentName))
+        {
+            return Conflict($"Instrument: {request.NewInstrumentName}, is already in the database");
+        }
+
+        var instrument = await _context.Instrument
+            .SingleOrDefaultAsync(x => x.Id == id);
+
+        if (instrument == null)
+        {
+            return NotFound("Id not found");
+        }
+
+        instrument.Name = request.NewInstrumentName;
+        instrument.CategoryId = request.NewCategoryId;
+        await _context.SaveChangesAsync();
+
+        return Ok(instrument);
+    }
+
+    private async Task<bool> CategoryExists(int categoryId)
+    {
+        return await _context.Category.AnyAsync(x => x.Id == categoryId);
+    }
+
+    private async Task<bool> InstrumentExists(string name)
+    {
+        return await _context.Instrument.AnyAsync(x => x.Name == name);
     }
 }

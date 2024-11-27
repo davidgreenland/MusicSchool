@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MusicSchool.Models;
+using MusicSchool.Requests.Category;
 using MusicSchool.Responses;
 
 namespace MusicSchool.Controllers;
@@ -40,5 +42,23 @@ public class CategoryController : ControllerBase
         }
 
         return Ok(new CategoryResponse(category.Id, category.CategoryName, category.Instruments));
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<Category>> UpdateCategory(int id, [FromBody] UpdateCategory request)
+    {
+        var category = await _context.Category
+            .SingleOrDefaultAsync(x => x.Id == id);
+
+        if (category == null)
+        {
+            return BadRequest("Id not found");
+
+        }
+        
+        category.CategoryName = request.NewCategoryName;
+        await _context.SaveChangesAsync();
+
+        return Ok(category);
     }
 }
